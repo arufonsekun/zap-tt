@@ -1,14 +1,17 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import HelloWorld from './components/HelloWorld.vue';
 import TheWelcome from './components/TheWelcome.vue';
 
 import pahoMqtt from 'paho-mqtt';
 
+const userMessage = ref("");
+let client;
+
 const createZapTTClient = () => {
+    client = new pahoMqtt.Client("localhost", 1883, "arufonsekun");
     console.log(pahoMqtt);
     // Create a client instance
-    const client = new pahoMqtt.Client("localhost", 1883, "arufonsekun");
 
     // set callback handlers
     client.onConnectionLost = onConnectionLost;
@@ -40,6 +43,13 @@ const createZapTTClient = () => {
     }
 }
 
+function sendMessage() {
+    const message = new pahoMqtt.Message(userMessage.value);
+    message.destinationName = "World";
+    client.send(message);
+}
+
+
 onMounted(() => {
     createZapTTClient();
 })
@@ -56,6 +66,9 @@ onMounted(() => {
 
     <main>
         <TheWelcome />
+        <input type="text" placeholder="Write here" v-model="userMessage">
+        <button type="button" v-on:click=sendMessage>Send</button>
+
     </main>
 </template>
 
