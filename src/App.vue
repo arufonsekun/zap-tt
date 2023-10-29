@@ -6,6 +6,7 @@ import { createZapTTClient, disconnectClient } from './services/paho';
 import { useUserStore } from './store/user';
 
 import ZapHome from './components/ZapHome.vue';
+
 // sudo lsof -i :1883
 // ifconfig | grep "inet " | grep - v 127.0.0.1
 

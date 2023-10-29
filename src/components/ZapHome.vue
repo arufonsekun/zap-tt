@@ -1,8 +1,9 @@
 <script setup>
+import { ref, defineEmits, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '../store/user'
 import USER_STATUS from '../constants/user-status'
-import { ref, defineEmits, computed } from 'vue'
+import NewGroupModal from './NewGroupModal.vue';
 
 const emit = defineEmits(['logout'])
 const userStore = useUserStore()
@@ -10,6 +11,7 @@ const userStore = useUserStore()
 const currentUser = userStore.getUser()
 const { zapTTUsers } = storeToRefs(userStore)
 const filter = ref('')
+const newGroupModal = ref(null);
 
 const logout = () => {
   emit('logout')
@@ -29,7 +31,7 @@ const zapUsers = computed(() => {
 })
 
 const newGroup = () => {
-  console.log('Eu quero criar um grupo novo');
+  newGroupModal.value.show();
 }
 </script>
 
@@ -144,6 +146,8 @@ const newGroup = () => {
       </div>
     </div>
   </div>
+
+  <NewGroupModal ref="newGroupModal"/>
 </template>
 
 <style scoped>
@@ -158,10 +162,6 @@ const newGroup = () => {
 .welcome-container {
   place-content: center;
   flex-wrap: wrap;
-}
-
-.no-text-selection {
-  user-select: none;
 }
 
 .dotted-border {
