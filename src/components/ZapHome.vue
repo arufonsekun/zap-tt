@@ -27,6 +27,10 @@ const zapUsers = computed(() => {
     return user.uuid !== currentUser.uuid
   })
 })
+
+const newGroup = () => {
+  console.log('Eu quero criar um grupo novo');
+}
 </script>
 
 <template>
@@ -35,7 +39,27 @@ const zapUsers = computed(() => {
     <div class="col-4 py-3">
       <div class="conversation-list rounded h-100">
         <div class="container-fluid">
-          <div class="row">
+          <div class="row pt-3">
+            <div class="col-12">
+              <div class="px-2">
+                <div class="d-flex px-1 text-light justify-content-between">
+                  <div class="user-avatar fs-1">
+                    <i class="bi bi-person-circle"></i>
+                    <span
+                      class="online rounded-circle"
+                    ></span>
+                    <span class="fs-3 no-text-selection">
+                      {{  `Olá, ${currentUser.name}` }}
+                    </span>
+                  </div>
+                  <div class="new-group cursor-pointer d-flex mx-3 my-auto" title="Criar grupo" @click="newGroup()">
+                    <div class="fs-4">
+                      <svg viewBox="0 0 24 24" height="40" width="40" preserveAspectRatio="xMidYMid meet" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.16667 3.75C3.69391 3.75 2.5 4.94391 2.5 6.41667V17.5833C2.5 19.0561 3.69391 20.25 5.16667 20.25H18.8333C20.3061 20.25 21.5 19.0561 21.5 17.5833V8.75L23.7458 5.29499C24.1782 4.62974 23.7008 3.75 22.9073 3.75H5.16667ZM14.9672 12.9911H12.9914V14.9671C12.9914 15.3999 12.7366 15.8175 12.3238 15.9488C11.6391 16.1661 11.009 15.6613 11.009 15.009V12.9911H9.03279C8.59949 12.9911 8.1819 12.7358 8.05099 12.3226C7.83412 11.6381 8.33942 11.0089 8.99134 11.0089H11.009V9.03332C11.009 8.60007 11.2639 8.18252 11.6767 8.05119C12.3609 7.83391 12.9914 8.33872 12.9914 8.991V11.0089H15.0091C15.6606 11.0089 16.1659 11.6381 15.949 12.3226C15.8185 12.7358 15.4005 12.9911 14.9672 12.9911Z" fill="currentColor"></path></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="col-10">
               <div class="px-2">
                 <div class="input-group input-group-lg my-3">
@@ -55,7 +79,12 @@ const zapUsers = computed(() => {
             </div>
             <div class="col-2 ps-0">
               <div class="pe-2">
-                <button type="button" class="btn btn-lg btn-secondary my-3 w-100" @click="logout()" title="Sair">
+                <button
+                  type="button"
+                  class="btn btn-lg btn-secondary my-3 w-100"
+                  @click="logout()"
+                  title="Sair"
+                >
                   <i class="bi bi-box-arrow-right"></i>
                 </button>
               </div>
@@ -88,7 +117,7 @@ const zapUsers = computed(() => {
                     </div>
                   </div>
 
-                  <div v-if="!zapUsers.length" class="col-12 p-0 mb-3 cursor-pointer">
+                  <div v-if="!zapUsers.length" class="col-12 p-0 mb-3">
                     <div class="d-flex text-light">
                       <div class="user-name d-flex mx-3 my-auto">
                         <div class="fs-5 no-text-selection">
