@@ -1,6 +1,10 @@
 # zap-tt
 
-This template should help get you started developing with Vue 3 in Vite.
+zap-tt is a simple messaging application build on top of MQTT protocol (Message Queuing Telemetry Transport). The main purpose of this project is to get to know how MQTT protocol works.
+
+## Preview
+
+![image](https://github.com/arufonsekun/zap-tt/assets/19571204/c3419054-dc54-4c94-965e-3bc8b5a83630)
 
 ## Recommended IDE Setup
 
