@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 
-import { createZapTTClient } from './services/paho';
+import { createZapTTClient, disconnectClient } from './services/paho';
 import { useUserStore } from './store/user';
 
 import ZapHome from './components/ZapHome.vue';
@@ -31,6 +31,7 @@ const enterOnZapTT = () => {
 }
 
 const disconnect = () => {
+    disconnectClient(userStore);
     isOnline.value = false;
 }
 
