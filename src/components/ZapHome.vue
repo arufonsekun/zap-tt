@@ -3,15 +3,17 @@ import { ref, defineEmits, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '../store/user'
 import USER_STATUS from '../constants/user-status'
-import NewGroupModal from './NewGroupModal.vue';
+import NewGroupModal from './NewGroupModal.vue'
+import GroupInfoModal from './GroupInfoModal.vue'
 
 const emit = defineEmits(['logout'])
 const userStore = useUserStore()
 
 const currentUser = userStore.getUser()
-const { zapTTUsers } = storeToRefs(userStore)
+const { zapTTUsers, zapTTGroups } = storeToRefs(userStore)
 const filter = ref('')
-const newGroupModal = ref(null);
+const newGroupModal = ref(null)
+const groupInfoModal = ref(null);
 
 const logout = () => {
   emit('logout')
@@ -19,19 +21,27 @@ const logout = () => {
 
 /**
  * Computed property responsible to filter
- * zap-tt users.
+ * zap-tt conversations (group and users).
  */
-const zapUsers = computed(() => {
-  return zapTTUsers.value.filter((user) => {
+const zapConversations = computed(() => {
+  const conversations = zapTTUsers.value.concat(zapTTGroups.value)
+  return conversations.filter((user) => {
     if (filter.value) {
-      return user.name.includes(filter.value) && user.uuid !== currentUser.uuid
+      return (
+        user.name.toLocaleLowerCase().includes(filter.value.toLocaleLowerCase()) &&
+        user.uuid !== currentUser.uuid
+      )
     }
     return user.uuid !== currentUser.uuid
   })
 })
 
 const newGroup = () => {
-  newGroupModal.value.show();
+  newGroupModal.value.show()
+}
+
+const openGroupInfo = (group) => {
+  groupInfoModal.value.show(group);
 }
 </script>
 
@@ -45,18 +55,33 @@ const newGroup = () => {
             <div class="col-12">
               <div class="px-2">
                 <div class="d-flex px-1 text-light justify-content-between">
-                  <div class="user-avatar fs-1">
+                  <div class="user-avatar fs-1 mt-2 d-flex">
                     <i class="bi bi-person-circle"></i>
-                    <span
-                      class="online rounded-circle"
-                    ></span>
+                    <span class="online rounded-circle"></span>
                     <span class="fs-3 no-text-selection">
-                      {{  `Olá, ${currentUser.name}` }}
+                      {{ `Olá, ${currentUser.name}` }}
                     </span>
                   </div>
-                  <div class="new-group cursor-pointer d-flex mx-3 my-auto" title="Criar grupo" @click="newGroup()">
+                  <div
+                    class="new-group cursor-pointer d-flex mx-3 my-auto"
+                    title="Criar grupo"
+                    @click="newGroup()"
+                  >
                     <div class="fs-4">
-                      <svg viewBox="0 0 24 24" height="40" width="40" preserveAspectRatio="xMidYMid meet" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.16667 3.75C3.69391 3.75 2.5 4.94391 2.5 6.41667V17.5833C2.5 19.0561 3.69391 20.25 5.16667 20.25H18.8333C20.3061 20.25 21.5 19.0561 21.5 17.5833V8.75L23.7458 5.29499C24.1782 4.62974 23.7008 3.75 22.9073 3.75H5.16667ZM14.9672 12.9911H12.9914V14.9671C12.9914 15.3999 12.7366 15.8175 12.3238 15.9488C11.6391 16.1661 11.009 15.6613 11.009 15.009V12.9911H9.03279C8.59949 12.9911 8.1819 12.7358 8.05099 12.3226C7.83412 11.6381 8.33942 11.0089 8.99134 11.0089H11.009V9.03332C11.009 8.60007 11.2639 8.18252 11.6767 8.05119C12.3609 7.83391 12.9914 8.33872 12.9914 8.991V11.0089H15.0091C15.6606 11.0089 16.1659 11.6381 15.949 12.3226C15.8185 12.7358 15.4005 12.9911 14.9672 12.9911Z" fill="currentColor"></path></svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        height="40"
+                        width="40"
+                        preserveAspectRatio="xMidYMid meet"
+                        fill="none"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.16667 3.75C3.69391 3.75 2.5 4.94391 2.5 6.41667V17.5833C2.5 19.0561 3.69391 20.25 5.16667 20.25H18.8333C20.3061 20.25 21.5 19.0561 21.5 17.5833V8.75L23.7458 5.29499C24.1782 4.62974 23.7008 3.75 22.9073 3.75H5.16667ZM14.9672 12.9911H12.9914V14.9671C12.9914 15.3999 12.7366 15.8175 12.3238 15.9488C11.6391 16.1661 11.009 15.6613 11.009 15.009V12.9911H9.03279C8.59949 12.9911 8.1819 12.7358 8.05099 12.3226C7.83412 11.6381 8.33942 11.0089 8.99134 11.0089H11.009V9.03332C11.009 8.60007 11.2639 8.18252 11.6767 8.05119C12.3609 7.83391 12.9914 8.33872 12.9914 8.991V11.0089H15.0091C15.6606 11.0089 16.1659 11.6381 15.949 12.3226C15.8185 12.7358 15.4005 12.9911 14.9672 12.9911Z"
+                          fill="currentColor"
+                        ></path>
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -95,31 +120,52 @@ const newGroup = () => {
               <div class="container-fluid">
                 <div class="row">
                   <div
-                    v-for="user in zapUsers"
+                    v-for="conversation in zapConversations"
                     class="col-12 p-0 mb-3 cursor-pointer"
-                    :title="`Conversar com ${user.name}`"
-                    :key="user.uuid"
+                    :title="`Conversar com ${conversation.name}`"
+                    :key="conversation.uuid"
                   >
-                    <div class="d-flex px-3 bg-light text-body rounded">
-                      <div class="user-avatar fs-1">
+                    <div class="d-flex justify-content-between px-3 bg-light text-body rounded">
+                      <div class="user-avatar d-flex fs-1" v-if="conversation.isGroup">
+                        <i class="bi bi-people-fill"></i>
+                        <div class="user-name d-flex mx-3 my-auto">
+                          <div class="fs-4 no-text-selection">
+                            {{
+                              conversation.uuid === currentUser.uuid ? 'Você' : conversation.name
+                            }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="user-avatar d-flex fs-1" v-else>
                         <i class="bi bi-person-circle"></i>
                         <span
                           class="rounded-circle"
                           :class="{
-                            online: user.status === USER_STATUS.ONLINE,
-                            offline: user.status === USER_STATUS.OFFLINE
+                            online: conversation.status === USER_STATUS.ONLINE,
+                            offline: conversation.status === USER_STATUS.OFFLINE
                           }"
                         ></span>
+                        <div class="user-name d-flex mx-3 my-auto">
+                          <div class="fs-4 no-text-selection">
+                            {{
+                              conversation.uuid === currentUser.uuid ? 'Você' : conversation.name
+                            }}
+                          </div>
+                        </div>
                       </div>
-                      <div class="user-name d-flex mx-3 my-auto">
-                        <div class="fs-4 no-text-selection">
-                          {{ user.uuid === currentUser.uuid ? 'Você' : user.name }}
+                      <div
+                        class="text-secondary d-flex fs-4 my-auto"
+                        title="Ver informações do Grupo"
+                        v-if="conversation.isGroup"
+                      >
+                        <div class="p-1" @click="openGroupInfo(conversation)">
+                          <i class="bi bi-info-circle-fill"></i>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div v-if="!zapUsers.length" class="col-12 p-0 mb-3">
+                  <div v-if="!zapConversations.length" class="col-12 p-0 mb-3">
                     <div class="d-flex text-light">
                       <div class="user-name d-flex mx-3 my-auto">
                         <div class="fs-5 no-text-selection">
@@ -140,14 +186,14 @@ const newGroup = () => {
     <div class="col-8">
       <div class="d-flex h-100 welcome-container">
         <div class="fs-1 text-success text-center no-text-selection">
-          Bem-vindo ao zap-tt, <span class="dotted-border"> {{ currentUser.name }} </span>
-          <i class="bi bi-chat-dots-fill"></i>
+          Bem-vindo ao zap-tt, <span class="dotted-border"> {{ currentUser.name }} </span> <i class="bi bi-chat-dots-fill"></i>
         </div>
       </div>
     </div>
   </div>
 
-  <NewGroupModal ref="newGroupModal"/>
+  <NewGroupModal ref="newGroupModal" />
+  <GroupInfoModal ref="groupInfoModal" />
 </template>
 
 <style scoped>
@@ -178,7 +224,7 @@ const newGroup = () => {
   display: inline-block;
   position: relative;
   left: -12px;
-  top: 4px;
+  top: 35px;
 }
 .online {
   background-color: #13a05e;
