@@ -9,6 +9,7 @@ export const useUserStore = defineStore('user', {
                 uuid: "",
                 status: USER_STATUS.ONLINE,
             },
+            zapTTGroups:[],
             zapTTUsers: [],
             mqttClient: {},
         }
@@ -26,17 +27,17 @@ export const useUserStore = defineStore('user', {
         getMqttClient() {
             return this.mqttClient;
         },
-        /**
-         * Gets users that joined zat-tt sometime,
-         * it includes online and offline ones.
-         *
-         * @returns {array} Users that joined zat-tt sometime.
-         */
         getZapTTUsers() {
             return this.zapTTUsers;
         },
         addNewZapTTUser(user) {
             this.zapTTUsers.push(user);
+        },
+        getZapTTGroups() {
+            return this.zapTTGroups;
+        },
+        addNewZapTTGroup(group) {
+            this.zapTTGroups.push(group);
         }
     },
 });
