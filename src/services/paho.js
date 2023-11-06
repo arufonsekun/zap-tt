@@ -62,12 +62,12 @@ const unsubscribeTopic = (client, topic) => {
  */
 const handleNewMessage = (userStore, message) => {
     const { topic } = message;
-    
+    const { payloadString } = message;
+    const payload = JSON.parse(payloadString);
+
+    // TODO: refact this IF into a function!
     if (topic === TOPICS.USERS_ONLINE_TOPIC) {
         console.debug("New message from USERS_ONLINE_TOPIC", message);
-        
-        const { payloadString } = message;
-        const payload = JSON.parse(payloadString);
         
         const zapTTUsers = userStore.getZapTTUsers();
         console.log('zapTTUsers', zapTTUsers);
@@ -113,13 +113,28 @@ const handleNewMessage = (userStore, message) => {
         zapTTUsers[userIndex] =  payload;
         return;
     }
+
+    if (topic === TOPICS.GROUPS_TOPIC) {
+        console.log('Um novo grupo foi criado', payload);
+
+        const currentUser = userStore.getUser();
+        const isCurrentUserInGroup = payload.participants.some((participant) => {
+            return participant.uuid === currentUser.uuid
+        });
+        console.log('isCurrentUserInGroup', isCurrentUserInGroup);
+
+        if (!isCurrentUserInGroup) {
+            return;
+        }
+
+        userStore.addNewZapTTGroup(payload);
+    }
 }
 
 const createZapTTClient = (userStore) => {
 
     const currentUser = userStore.getUser();
     const client = new pahoMqtt.Client("127.0.0.1", 9001, "/mqtt", currentUser.uuid);
-    console.log('client', client);
 
     const onConnectionLost = (responseObject) => {
         if (responseObject.errorCode !== 0) {
@@ -137,11 +152,18 @@ const createZapTTClient = (userStore) => {
         sendMessage(userStore, data, TOPICS.USERS_ONLINE_TOPIC);
     }
 
+    const subscribeUserToGroupsTopic = () => {
+        subscribeTopic(userStore, TOPICS.GROUPS_TOPIC);
+    }
+
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = (message) => {
         handleNewMessage(userStore, message);
     };
-    client.connect({ onSuccess: tellCurrentUserIsOnline });
+    client.connect({ onSuccess: () => {
+        tellCurrentUserIsOnline();
+        subscribeUserToGroupsTopic();
+    } });
 
     userStore.setMqttClient(client);
 }
@@ -160,14 +182,17 @@ const disconnectClient = (userStore) => {
         status: USER_STATUS.OFFLINE,
     };
 
-    console.log('Chamou o disconnect');
-
     sendMessage(userStore, data, TOPICS.USERS_ONLINE_TOPIC);
+}
+
+const createGroup = (userStore, group) => {
+    sendMessage(userStore, group, TOPICS.GROUPS_TOPIC);
 }
 
 export {
     createZapTTClient,
     disconnectClient,
+    createGroup,
     // sendMessage,
     // subscribeTopic,
     // unsubscribeTopic,
