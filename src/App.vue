@@ -28,12 +28,12 @@ const enterOnZapTT = () => {
     userStore.setUser(user);
 
     createZapTTClient(userStore);
-    username.value = "";
 }
 
 const disconnect = () => {
     disconnectClient(userStore);
     isOnline.value = false;
+    username.value = "";
 }
 
 </script>
