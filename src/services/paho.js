@@ -26,6 +26,7 @@ const sendMessage = (userStore, userMessage, topic) => {
     const payload = JSON.stringify(userMessage);
     const retained = true;
 
+    console.log("SEND MESSAGE", topic, payload);
     client.send(topic, payload, QoS, retained);
 }
 
@@ -39,6 +40,7 @@ const sendMessage = (userStore, userMessage, topic) => {
  */
 const subscribeTopic = (userStore, topic) => {
     const client = userStore.getMqttClient();
+    console.log("SUBSCRIB TOPIC", topic);
     client.subscribe(topic, { qos: 2 });
 };
 
@@ -65,10 +67,14 @@ const handleNewMessage = (userStore, message) => {
     const { payloadString } = message;
     const payload = JSON.parse(payloadString);
 
+    console.log("TOPIC", topic);
     // TODO: refact this IF into a function!
-    if (topic === TOPICS.USERS_ONLINE_TOPIC) {
-        console.debug("New message from USERS_ONLINE_TOPIC", message);
-        
+
+
+    const regex = /USERS\/STATS\/([a-zA-Z0-9_-]+)/;
+    if (topic.match(regex)) {
+        console.log("GET INTO USERS STATS TOPIC", payload);
+        // TODO: refactor user to a map or set @arufonsekun
         const zapTTUsers = userStore.getZapTTUsers();
         console.log('zapTTUsers', zapTTUsers);
         const userIndex = zapTTUsers.findIndex((user) => {
@@ -80,17 +86,6 @@ const handleNewMessage = (userStore, message) => {
             const newUser = payload;
             userStore.addNewZapTTUser(newUser);
 
-            const tellsNewUserIamOnline = () => {
-                const currentUser = userStore.getUser();
-                const data = {
-                    ...currentUser,
-                    status: USER_STATUS.ONLINE,
-                };
-
-                sendMessage(userStore, data, TOPICS.USERS_ONLINE_TOPIC);
-            }
-
-            tellsNewUserIamOnline();
             return;
         }
 
@@ -104,17 +99,17 @@ const handleNewMessage = (userStore, message) => {
              * whom is online, once current user intent is to logout.
              */
             const client = userStore.getMqttClient();
-            unsubscribeTopic(client, TOPICS.USERS_ONLINE_TOPIC);
+            unsubscribeTopic(client, TOPICS.USERS_STATS);
 
             client.disconnect();
         }
 
         // Updates existing user
-        zapTTUsers[userIndex] =  payload;
+        zapTTUsers[userIndex] = payload;
         return;
     }
 
-    if (topic === TOPICS.GROUPS_TOPIC) {
+    if (topic === TOPICS.GROUPS) {
         console.log('Um novo grupo foi criado', payload);
 
         const currentUser = userStore.getUser();
@@ -134,7 +129,7 @@ const handleNewMessage = (userStore, message) => {
 const createZapTTClient = (userStore) => {
 
     const currentUser = userStore.getUser();
-    const client = new pahoMqtt.Client("127.0.0.1", 9001, "/mqtt", currentUser.uuid);
+    const client = new pahoMqtt.Client("127.0.0.1", 9001, "/mqtt", currentUser.name);
 
     const onConnectionLost = (responseObject) => {
         if (responseObject.errorCode !== 0) {
@@ -142,30 +137,42 @@ const createZapTTClient = (userStore) => {
         }
     }
 
-    const tellCurrentUserIsOnline = () => {
-        const data = {
-            ...currentUser,
-            status: USER_STATUS.ONLINE,
-        };
-
-        subscribeTopic(userStore, TOPICS.USERS_ONLINE_TOPIC);
-        sendMessage(userStore, data, TOPICS.USERS_ONLINE_TOPIC);
-    }
-
     const subscribeUserToGroupsTopic = () => {
-        subscribeTopic(userStore, TOPICS.GROUPS_TOPIC);
+        subscribeTopic(userStore, TOPICS.GROUPS);
     }
 
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = (message) => {
         handleNewMessage(userStore, message);
     };
-    client.connect({ onSuccess: () => {
-        tellCurrentUserIsOnline();
-        subscribeUserToGroupsTopic();
-    } });
+    client.connect({
+        onSuccess: () => {
+            setupUser(userStore);
+            // subscribeUserToGroupsTopic();
+        }
+    });
 
     userStore.setMqttClient(client);
+}
+
+/**
+ * TODO
+ * 
+ * @param {*} userStore Where Mqtt client is stored
+ */
+const setupUser = (userStore) => {
+    const currentUser = userStore.getUser();
+    console.log(currentUser, "SETUP USER");
+    subscribeTopic(userStore, TOPICS.USERS_CONTROL.replace("#", currentUser.name));
+    subscribeTopic(userStore, TOPICS.USERS_STATS);
+
+    const data = {
+        ...currentUser,
+        status: USER_STATUS.ONLINE,
+    };
+    sendMessage(userStore, data, TOPICS.USERS_STATS.replace("#", currentUser.name));
+
+    console.log(currentUser, "END SETUP USER");
 }
 
 /**
@@ -182,11 +189,12 @@ const disconnectClient = (userStore) => {
         status: USER_STATUS.OFFLINE,
     };
 
-    sendMessage(userStore, data, TOPICS.USERS_ONLINE_TOPIC);
+    console.log("CALLED DISCONNECT");
+    sendMessage(userStore, data, TOPICS.USERS_STATS.replace("#", currentUser.name));
 }
 
 const createGroup = (userStore, group) => {
-    sendMessage(userStore, group, TOPICS.GROUPS_TOPIC);
+    sendMessage(userStore, group, TOPICS.GROUPS);
 }
 
 export {
