@@ -17,7 +17,7 @@ See [Vite Configuration Reference](https://vitejs.dev/config/).
 ## Initialize mosquitto
 
 ```
-    mosquitto -v -c mosquittto.conf
+    mosquitto -v -c mosquitto.conf
 ```
 
 ## Project Setup

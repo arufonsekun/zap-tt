@@ -7,7 +7,7 @@ export default {
     /**
     * Listen to specific user constrol
     */
-    USERS_CONTROL: "USERS/CONTROL/#",
+    USERS_CONTROL: "USERS/CONTROL",
 
     /**
      * Tells if a new group is created.

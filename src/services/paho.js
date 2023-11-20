@@ -66,10 +66,28 @@ const handleNewMessage = (userStore, message) => {
     const { topic } = message;
     const { payloadString } = message;
     const payload = JSON.parse(payloadString);
+    const currentUser = userStore.getUser();
 
     console.log("TOPIC", topic);
     // TODO: refact this IF into a function!
 
+
+    if (topic == `${TOPICS.USERS_CONTROL}/${currentUser.name}`) {
+        if (payload == PAYLOAD.NEW_CHAT) {
+            // ABRIR DIALOG
+        } else if (payload.ack) {
+            subscribeTopic(payload.topic);
+            subscribedTopics.add(payload.topic);
+        }
+
+        return;
+    }
+
+    if (subscribedTopics.includes(topic)) {
+        // Mensagens sensuais
+        // TODO: adicionar mensagem na lista de mensagem 
+        return;
+    }
 
     const regex = /USERS\/STATS\/([a-zA-Z0-9_-]+)/;
     if (topic.match(regex)) {
@@ -89,7 +107,6 @@ const handleNewMessage = (userStore, message) => {
             return;
         }
 
-        const currentUser = userStore.getUser();
         const isCurrentUser = payload.uuid === currentUser.uuid;
         const isDisconnected = payload.status === USER_STATUS.OFFLINE
         if (isCurrentUser && isDisconnected) {
@@ -123,6 +140,7 @@ const handleNewMessage = (userStore, message) => {
         }
 
         userStore.addNewZapTTGroup(payload);
+        return;
     }
 }
 
@@ -163,7 +181,7 @@ const createZapTTClient = (userStore) => {
 const setupUser = (userStore) => {
     const currentUser = userStore.getUser();
     console.log(currentUser, "SETUP USER");
-    subscribeTopic(userStore, TOPICS.USERS_CONTROL.replace("#", currentUser.name));
+    subscribeTopic(userStore, `${TOPICS.USERS_CONTROL}/${currentUser.name}`);
     subscribeTopic(userStore, TOPICS.USERS_STATS);
 
     const data = {
@@ -195,6 +213,29 @@ const disconnectClient = (userStore) => {
 
 const createGroup = (userStore, group) => {
     sendMessage(userStore, group, TOPICS.GROUPS);
+}
+
+const createChat = (userStore, user) => {
+    const userControl = `${TOPICS.USERS_CONTROL}/${user.name}`;
+    // TODO: Assinantes no topico de controle devem somente mandar mensagem e não receber atualizações do controle de outrém
+    // subscribeTopic(userStore, userControl);
+    sendMessage(userStore, PAYLOADS.NEW_CHAT, userControl);
+}
+
+const acknowledgeChat = (userStore, user, ack) => {
+    const currentUser = userStore.getUser();
+    const ackTopic = `${user.name}_${currentUser.name}_${Date.now()}`;
+    const userControl = `${TOPICS.USERS_CONTROL}/${user.name}`;
+    const payload = {
+        ack: ack,
+        topic: ack ? ackTopic : null
+    };
+
+    // subscribeTopic(userStore, userControl);
+    sendMessage(userStore, payload, userControl);
+
+    if (!ack) return;
+    subscribeTopic(userStore, ackTopic);
 }
 
 export {
