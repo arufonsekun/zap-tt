@@ -3,14 +3,14 @@ import { ref } from 'vue';
 import { v4 as uuidv4 } from 'uuid';
 
 import { createZapTTClient, disconnectClient } from './services/paho';
-import { useUserStore } from './store/user';
+import { useAppStore } from './store/app';
 
 import ZapHome from './components/ZapHome.vue';
 
 // sudo lsof -i :1883
 // ifconfig | grep "inet " | grep - v 127.0.0.1
 
-const userStore = useUserStore();
+const appStore = useAppStore();
 const username = ref("");
 const isOnline = ref(false);
 
@@ -25,13 +25,13 @@ const enterOnZapTT = () => {
         name: username.value,
     };
 
-    userStore.setUser(user);
+    appStore.setUser(user);
 
-    createZapTTClient(userStore);
+    createZapTTClient(appStore);
 }
 
 const disconnect = () => {
-    disconnectClient(userStore);
+    disconnectClient(appStore);
     isOnline.value = false;
     username.value = "";
 }
