@@ -1,16 +1,18 @@
 <script setup>
 import { ref, defineEmits, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useUserStore } from '../store/user'
+import { useAppStore } from '../store/app'
 import USER_STATUS from '../constants/user-status'
 import NewGroupModal from './NewGroupModal.vue'
 import GroupInfoModal from './GroupInfoModal.vue'
+import NewChatRequest from './NewChatRequest.vue'
+import { createConversation } from '../services/paho';
 
 const emit = defineEmits(['logout'])
-const userStore = useUserStore()
+const appStore = useAppStore()
 
-const currentUser = userStore.getUser()
-const { zapTTUsers, zapTTGroups } = storeToRefs(userStore)
+const currentUser = appStore.getUser()
+const { zapTTUsers, zapTTGroups } = storeToRefs(appStore)
 const filter = ref('')
 const newGroupModal = ref(null)
 const groupInfoModal = ref(null);
@@ -22,6 +24,8 @@ const logout = () => {
 /**
  * Computed property responsible to filter
  * zap-tt conversations (group and users).
+ * 
+ * TODO: improve this name.
  */
 const zapConversations = computed(() => {
   const conversations = zapTTUsers.value.concat(zapTTGroups.value)
@@ -42,6 +46,10 @@ const newGroup = () => {
 
 const openGroupInfo = (group) => {
   groupInfoModal.value.show(group);
+}
+
+const initConversation = (data) => {
+  createConversation(appStore, data);
 }
 </script>
 
@@ -153,6 +161,9 @@ const openGroupInfo = (group) => {
                           </div>
                         </div>
                       </div>
+                      <button class="btn" title="Iniciar conversa" @click="initConversation(conversation)" v-if="!conversation.hasStartedConversation">
+                        <svg viewBox="0 0 24 24" height="24" width="24" preserveAspectRatio="xMidYMid meet" class="" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M18.8333 3.75C20.3061 3.75 21.5 4.94391 21.5 6.41667V17.5833C21.5 19.0561 20.3061 20.25 18.8333 20.25H5.16667C3.69391 20.25 2.5 19.0561 2.5 17.5833V8.75L0.254242 5.29499C-0.178171 4.62974 0.299248 3.75 1.09269 3.75H18.8333ZM9.03279 12.9911H11.0086V14.9671C11.0086 15.3999 11.2634 15.8175 11.6762 15.9488C12.3609 16.1661 12.991 15.6613 12.991 15.009V12.9911H14.9672C15.4005 12.9911 15.8181 12.7358 15.949 12.3226C16.1659 11.6381 15.6606 11.0089 15.0087 11.0089H12.991V9.03332C12.991 8.60007 12.7361 8.18252 12.3233 8.05119C11.6391 7.83391 11.0086 8.33872 11.0086 8.991V11.0089H8.9909C8.33943 11.0089 7.83413 11.6381 8.05099 12.3226C8.18146 12.7358 8.59949 12.9911 9.03279 12.9911Z" fill="currentColor"></path></svg>
+                      </button>
                       <div
                         class="text-secondary d-flex fs-4 my-auto"
                         title="Ver informações do Grupo"
@@ -194,6 +205,7 @@ const openGroupInfo = (group) => {
 
   <NewGroupModal ref="newGroupModal" />
   <GroupInfoModal ref="groupInfoModal" />
+  <NewChatRequest />
 </template>
 
 <style scoped>
