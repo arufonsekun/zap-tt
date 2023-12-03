@@ -1,21 +1,24 @@
 <script setup>
-import { ref, defineEmits, computed } from 'vue'
+import { ref, defineEmits, computed, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAppStore } from '../store/app'
 import USER_STATUS from '../constants/user-status'
 import NewGroupModal from './NewGroupModal.vue'
 import GroupInfoModal from './GroupInfoModal.vue'
 import NewChatRequest from './NewChatRequest.vue'
-import { createConversation } from '../services/paho';
+import { createConversation, sendMessage } from '../services/paho';
 
 const emit = defineEmits(['logout'])
 const appStore = useAppStore()
 
 const currentUser = appStore.getUser()
-const { zapTTUsers, zapTTGroups } = storeToRefs(appStore)
+const { zapTTUsers, zapTTGroups, messages } = storeToRefs(appStore)
 const filter = ref('')
 const newGroupModal = ref(null)
 const groupInfoModal = ref(null);
+const currentChat = ref(null);
+const messageContent = ref("");
+const messageContainer = ref(null);
 
 const logout = () => {
   emit('logout')
@@ -51,11 +54,42 @@ const openGroupInfo = (group) => {
 const initConversation = (data) => {
   createConversation(appStore, data);
 }
+
+const openConversation = (conversation) => {
+  if (!conversation.hasStartedConversation) {
+    console.warn("openConversation: Two parts has not started conversation yet");
+    return;
+  }
+  messages.value = [];
+  currentChat.value = conversation;
+}
+
+const newMessage = () => {
+  console.log('newMessage', currentChat.value);
+  const msg = {
+    chatTopic: currentChat.value.chatTopic,
+    content: messageContent.value,
+    createdAt: new Date().toLocaleString(),
+    createdBy: currentUser,
+    isFromCurrentUser: true
+  };
+  messages.value.push(msg);
+  messageContent.value = '';
+  nextTick(() => {
+    /**
+     * Scroll to bottom right after a message is sent
+     */
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+  });
+
+  console.log('newMessage', messageContent.value);
+  sendMessage(appStore, msg, msg.chatTopic);
+}
 </script>
 
 <template>
   <div class="row home">
-    <!-- zap-tt left menu, with user list and filterm and logout button -->
+    <!-- zap-tt left menu, with user list and filter and logout button -->
     <div class="col-4 py-3">
       <div class="conversation-list rounded h-100">
         <div class="container-fluid">
@@ -132,8 +166,9 @@ const initConversation = (data) => {
                     class="col-12 p-0 mb-3 cursor-pointer"
                     :title="`Conversar com ${conversation.name}`"
                     :key="conversation.uuid"
+                    @click="openConversation(conversation)"
                   >
-                    <div class="d-flex justify-content-between px-3 bg-light text-body rounded">
+                    <div class="d-flex justify-content-between px-3 text-body rounded" :class="{'bg-info': currentChat?.uuid == conversation.uuid, 'bg-light': !(currentChat?.uuid == conversation.uuid)}">
                       <div class="user-avatar d-flex fs-1" v-if="conversation.isGroup">
                         <i class="bi bi-people-fill"></i>
                         <div class="user-name d-flex mx-3 my-auto">
@@ -194,8 +229,27 @@ const initConversation = (data) => {
     </div>
 
     <!-- zap-tt welcome user screen -->
-    <div class="col-8">
-      <div class="d-flex h-100 welcome-container">
+    <div class="col-8 py-3">
+      <div class="bg-light rounded h-100" v-if="currentChat">
+        <div class="py-2" style="height: calc(100% - 37px);">
+          <div class="d-flex h-100">
+            <div class="w-100 messages-container overflow-auto" style="height: 90vh;" ref="messageContainer">
+              <div class="d-flex message text-dark mb-2" v-for="(message, i) of messages" :key="i" :class="{'justify-content-end': message.isFromCurrentUser, 'justify-content-start': !message.isFromCurrentUser}">
+                <div class="text-end p-2 mx-2 text-light rounded" :class="{'bg-success': message.isFromCurrentUser, 'bg-info': !message.isFromCurrentUser}">
+                  {{ message.content }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="input-group px-2">
+            <input type="text" class="form-control" placeholder="Digite sua mensagem" aria-label="Username" aria-describedby="basic-addon1" @keydown.enter="newMessage" v-model="messageContent">
+            <button class="btn btn-success" type="button" id="button-addon2" @click="newMessage">
+              <i class="bi bi-send-fill"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex h-100 welcome-container" v-else>
         <div class="fs-1 text-success text-center no-text-selection">
           Bem-vindo ao zap-tt, <span class="dotted-border"> {{ currentUser.name }} </span> <i class="bi bi-chat-dots-fill"></i>
         </div>
@@ -244,5 +298,26 @@ const initConversation = (data) => {
 
 .offline {
   background-color: #e14554;
+}
+
+/* width */
+.messages-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+.messages-container::-webkit-scrollbar-track {
+  border-radius: 10px;
+}
+
+/* Handle */
+.messages-container::-webkit-scrollbar-thumb {
+  background: #9b9999;
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: #9b9999;
 }
 </style>
