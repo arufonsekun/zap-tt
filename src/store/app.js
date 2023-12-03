@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import USER_STATUS from '../constants/user-status';
 
-export const useUserStore = defineStore('user', {
+export const useAppStore = defineStore('user', {
     state: () => {
         return {
             currentUser: {
@@ -12,6 +12,7 @@ export const useUserStore = defineStore('user', {
             zapTTGroups:[],
             zapTTUsers: [],
             mqttClient: {},
+            newChatRequests: [],
         }
     },
     actions: {
@@ -38,6 +39,12 @@ export const useUserStore = defineStore('user', {
         },
         addNewZapTTGroup(group) {
             this.zapTTGroups.push(group);
+        },
+        addNewChatRequest(newChatRequest) {
+            this.newChatRequests.push(newChatRequest);
+        },
+        getNewChatRequests() {
+            return this.newChatRequests;
         }
     },
 });
