@@ -1,13 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useUserStore } from '../store/user'
+import { useAppStore } from '../store/app'
 import { storeToRefs } from 'pinia'
 import { createGroup } from '../services/paho'
 import { v4 as uuidv4 } from 'uuid';
 
-const userStore = useUserStore()
-const { zapTTUsers } = storeToRefs(userStore)
-const currentUser = userStore.getUser()
+const appStore = useAppStore()
+const { zapTTUsers } = storeToRefs(appStore)
+const currentUser = appStore.getUser()
 const node = ref(null)
 const name = ref('')
 const description = ref('')
@@ -60,7 +60,7 @@ const createZapTTGroup = () => {
     createdAt: new Date().toLocaleDateString(),
   };
 
-  createGroup(userStore, groupData)
+  createGroup(appStore, groupData)
 
   modalRef.hide();
 }
