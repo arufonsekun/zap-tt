@@ -5,7 +5,9 @@ export default {
     USERS_STATS: "USERS/STATS/#",
 
     /**
-    * Listen to specific user constrol
+    * Listen to specific user constrol, this topic
+    * is used to start a new conversation between
+    * two uses.
     */
     USERS_CONTROL: "USERS/CONTROL",
 
