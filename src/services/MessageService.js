@@ -45,9 +45,24 @@ const handleUsersControlMessage = (appStore, payload) => {
     }
 
     users[ackUserIndex].hasStartedConversation = true;
-    subscribeTopic(payload.topic);
+    users[ackUserIndex].chatTopic = payload.topic;
+    appStore.addConversationTopic(payload.topic);
+    subscribeTopic(appStore, payload.topic);
+}
+
+const handleMessageFromConversation = (appStore, message) => {
+    const currentUser = appStore.getUser();
+    const isMessageFromCurrentUser = currentUser.uuid == message.createdBy.uuid;
+
+    if (isMessageFromCurrentUser) {
+        return;
+    }
+
+    message.isFromCurrentUser = false;
+    appStore.messages.push(message);
 }
 
 export {
-    handleUsersControlMessage
+    handleUsersControlMessage,
+    handleMessageFromConversation,
 }
