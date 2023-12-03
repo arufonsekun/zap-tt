@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from 'vue'
-import { useUserStore } from '../store/user'
+import { useAppStore } from '../store/app'
 
-const userStore = useUserStore()
-const currentUser = userStore.getUser()
+const appStore = useAppStore()
+const currentUser = appStore.getUser()
 const node = ref(null)
 const group = ref(null);
 
