@@ -2,7 +2,10 @@ import pahoMqtt from 'paho-mqtt';
 import TOPICS from '../constants/topics';
 import USER_STATUS from '../constants/user-status';
 import PAYLOAD from '../constants/payloads';
-import { handleUsersControlMessage } from './MessageService';
+import {
+    handleUsersControlMessage,
+    handleMessageFromConversation
+} from './MessageService';
 
 const USER_STATS_REGEX = /USERS\/STATS\/([a-zA-Z0-9_-]+)/;
 
@@ -76,17 +79,18 @@ const handleNewMessage = (appStore, message) => {
     
     const isMessageFromUsersControlTopic = topic === `${TOPICS.USERS_CONTROL}/${currentUser.name.toLocaleUpperCase()}`;
     const isMessageFromUserStatusTopic = topic.match(USER_STATS_REGEX);
+    const isMessageFromConversation = appStore.conversationTopics.includes(topic);
     
     if (isMessageFromUsersControlTopic) {
         handleUsersControlMessage(appStore, payload);
         return;
     }
 
-    // if (subscribedTopics.includes(topic)) {
-    //     // Mensagens sensuais
-    //     // TODO: adicionar mensagem na lista de mensagem 
-    //     return;
-    // }
+    if (isMessageFromConversation) {
+        console.log('handleNewMessage: receive user message', payload);
+        handleMessageFromConversation(appStore, payload);
+        return;
+    }
 
     console.log('isMessageFromUserStatusTopic', isMessageFromUserStatusTopic);
     if (isMessageFromUserStatusTopic) {
@@ -262,6 +266,7 @@ const createChat1p1 = (appStore, user) => {
  */
 const acknowledgeChat = (appStore, user, ack) => {
     const currentUser = appStore.getUser();
+    const users = appStore.getZapTTUsers();
     const ackTopic = `${user.name}_${currentUser.name.toLocaleUpperCase()}_${Date.now()}`;
     const userControl = `${TOPICS.USERS_CONTROL}/${user.name.toLocaleUpperCase()}`;
     const payload = {
@@ -273,10 +278,15 @@ const acknowledgeChat = (appStore, user, ack) => {
 
     sendMessage(appStore, payload, userControl);
 
+    const requestedUser = users.find(u => u.uuid == user.uuid);
+    requestedUser.hasStartedConversation = ack;
+
     if (!ack) {
         return;
     }
 
+    requestedUser.chatTopic = ackTopic;
+    appStore.addConversationTopic(ackTopic);
     subscribeTopic(appStore, ackTopic);
 }
 
@@ -287,4 +297,5 @@ export {
     createConversation,
     acknowledgeChat,
     subscribeTopic,
+    sendMessage,
 };

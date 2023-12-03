@@ -13,6 +13,8 @@ export const useAppStore = defineStore('user', {
             zapTTUsers: [],
             mqttClient: {},
             newChatRequests: [],
+            messages: [],
+            conversationTopics: [],
         }
     },
     actions: {
@@ -45,6 +47,9 @@ export const useAppStore = defineStore('user', {
         },
         getNewChatRequests() {
             return this.newChatRequests;
+        },
+        addConversationTopic(topic) {
+            this.conversationTopics.push(topic);
         }
     },
 });
