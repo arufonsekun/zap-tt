@@ -46,17 +46,15 @@ defineExpose({ show })
                 <span class="fw-bold">Descrição:</span> {{ group?.description.length ? group?.description : "Não informado" }}
             </div>
             <div class="f-5">
-                <span class="fw-bold">Criado por:</span> {{ group?.owner.name }} em {{ group?.createdAt }}
+                <span class="fw-bold">Criado por:</span>
+                <template v-if="group?.owner.uuid == currentUser.uuid">
+                  Você
+                </template>
+                <template v-else>
+                  &nbsp;{{ group?.owner.name }}
+                </template>
+                em {{ group?.createdAt }}
             </div>
-            <div class="f-5">
-                <span class="fw-bold">Participantes:</span>
-            </div>
-            <ul>
-                <li v-for="participant in group?.participants" :key="participant.uuid">
-                    {{ participant.name }} {{ participant.uuid == currentUser.uuid ? "(Você)" : "" }}
-                </li>
-            </ul>
-
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">

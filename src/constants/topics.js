@@ -1,6 +1,6 @@
 export default {
     /**
-     * Listen to user status (online or offline)
+    * Listen to user status (online or offline)
     */
     USERS_STATS: "USERS/STATS/#",
 
@@ -12,7 +12,7 @@ export default {
     USERS_CONTROL: "USERS/CONTROL",
 
     /**
-     * Tells if a new group is created.
-     */
-    GROUPS: "GROUPS",
+    * Tells if a new group is created.
+    */
+    GROUPS_CONTROL: "GROUPS/CONTROL/#",
 };

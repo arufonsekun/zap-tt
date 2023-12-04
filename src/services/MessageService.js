@@ -1,4 +1,5 @@
 import PAYLOAD from '../constants/payloads';
+import TOPICS from '../constants/topics';
 import { subscribeTopic } from './paho';
 
 /**
@@ -62,7 +63,73 @@ const handleMessageFromConversation = (appStore, message) => {
     appStore.messages.push(message);
 }
 
+const handleGroupControlMessage = (appStore, payload) => {
+    console.log('handleGroupControlMessage', payload);
+    const currentUser = appStore.getUser();
+    const isCurrentUserGroupOwner = payload.group.owner.uuid == currentUser.uuid;
+    console.log('isCurrentUserGroupOwner', isCurrentUserGroupOwner);
+    
+    const isJoinGroupAck = payload.content === PAYLOAD.JOIN_GROUP_ACK;
+    const isJoinGroupRequest = payload.content === PAYLOAD.JOIN_GROUP;
+
+    console.log('isJoinGroupAck', isJoinGroupAck);
+    if (isJoinGroupAck) {
+        const groups = appStore.getZapTTGroups();
+        const ackGroup = groups.find(g => g.uuid == payload.group.uuid);
+        if (!ackGroup) {
+            return;
+        }
+        ackGroup.hasStartedConversation = payload.ack;
+        appStore.addNewGroupTopic(payload.group.uuid);
+        subscribeTopic(appStore, payload.group.uuid);
+        /**
+         * Open group if ack = true
+         */
+        if (payload.ack) {
+            appStore.setCurrentChat(ackGroup);
+        }
+        return;
+    }
+
+    if (!isJoinGroupRequest) {
+        /**
+         * If current user has created group, it means
+         * hasStartedConversation is true, then there's
+         * no need to request to start the conversation.
+        */
+       payload.group.hasStartedConversation = isCurrentUserGroupOwner;
+       payload.group.chatTopic = payload.group.uuid;
+       appStore.addNewZapTTGroup(payload.group);
+       console.log('MessageService: new group was created', payload);
+       return;
+    }
+
+    if (!isCurrentUserGroupOwner) {
+        return;
+    }
+
+    /**
+     * Group join requests must be handled
+     * only by group owner.
+     */
+    appStore.addNewJoinGroupRequest(payload);
+}
+
+const handleGroupMessage = (appStore, message) => {
+    const currentUser = appStore.getUser();
+    const isMessageFromCurrentUser = currentUser.uuid == message.createdBy.uuid;
+
+    if (isMessageFromCurrentUser) {
+        return;
+    }
+
+    message.isFromCurrentUser = false;
+    appStore.messages.push(message);
+}
+
 export {
     handleUsersControlMessage,
     handleMessageFromConversation,
+    handleGroupControlMessage,
+    handleGroupMessage,
 }

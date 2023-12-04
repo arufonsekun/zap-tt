@@ -4,10 +4,13 @@ import USER_STATUS from '../constants/user-status';
 import PAYLOAD from '../constants/payloads';
 import {
     handleUsersControlMessage,
-    handleMessageFromConversation
+    handleMessageFromConversation,
+    handleGroupControlMessage,
+    handleGroupMessage,
 } from './MessageService';
 
 const USER_STATS_REGEX = /USERS\/STATS\/([a-zA-Z0-9_-]+)/;
+const GROUPS_CONTROL_REGEX = /GROUPS\/CONTROL\/([a-zA-Z0-9_-]+)/;
 
 /**
  * Sends a MQTT message to a topic.
@@ -47,7 +50,7 @@ const sendMessage = (appStore, userMessage, topic) => {
  */
 const subscribeTopic = (appStore, topic) => {
     const client = appStore.getMqttClient();
-    console.log("SUBSCRIB TOPIC", topic);
+    console.log("SUBSCRIBE TO TOPIC", topic);
     client.subscribe(topic, { qos: 2 });
 };
 
@@ -80,6 +83,8 @@ const handleNewMessage = (appStore, message) => {
     const isMessageFromUsersControlTopic = topic === `${TOPICS.USERS_CONTROL}/${currentUser.name.toLocaleUpperCase()}`;
     const isMessageFromUserStatusTopic = topic.match(USER_STATS_REGEX);
     const isMessageFromConversation = appStore.conversationTopics.includes(topic);
+    const isMessageFromGroupsControlTopic = topic.match(GROUPS_CONTROL_REGEX);
+    const isMessageFromGroup = appStore.groupTopics.includes(topic);
     
     if (isMessageFromUsersControlTopic) {
         handleUsersControlMessage(appStore, payload);
@@ -89,6 +94,18 @@ const handleNewMessage = (appStore, message) => {
     if (isMessageFromConversation) {
         console.log('handleNewMessage: receive user message', payload);
         handleMessageFromConversation(appStore, payload);
+        return;
+    }
+
+    console.log('isMessageFromGroupsControlTopic', !!isMessageFromGroupsControlTopic);
+    if (isMessageFromGroupsControlTopic) {
+        handleGroupControlMessage(appStore, payload);
+        return;
+    }
+
+    console.log('isMessageFromGroup', isMessageFromGroup);
+    if (isMessageFromGroup) {
+        handleGroupMessage(appStore, payload);
         return;
     }
 
@@ -129,23 +146,6 @@ const handleNewMessage = (appStore, message) => {
         zapTTUsers[userIndex] = payload;
         return;
     }
-
-    if (topic === TOPICS.GROUPS) {
-        console.log('Um novo grupo foi criado', payload);
-
-        const currentUser = appStore.getUser();
-        const isCurrentUserInGroup = payload.participants.some((participant) => {
-            return participant.uuid === currentUser.uuid
-        });
-        console.log('isCurrentUserInGroup', isCurrentUserInGroup);
-
-        if (!isCurrentUserInGroup) {
-            return;
-        }
-
-        appStore.addNewZapTTGroup(payload);
-        return;
-    }
 }
 
 const createZapTTClient = (appStore) => {
@@ -160,7 +160,7 @@ const createZapTTClient = (appStore) => {
     }
 
     const subscribeUserToGroupsTopic = () => {
-        subscribeTopic(appStore, TOPICS.GROUPS);
+        subscribeTopic(appStore, TOPICS.GROUPS_CONTROL);
     }
 
     client.onConnectionLost = onConnectionLost;
@@ -170,7 +170,7 @@ const createZapTTClient = (appStore) => {
     client.connect({
         onSuccess: () => {
             setupUser(appStore);
-            // subscribeUserToGroupsTopic();
+            subscribeUserToGroupsTopic();
         }
     });
 
@@ -232,8 +232,56 @@ const createConversation = (appStore, data, isGroup) => {
     createChat1p1(appStore, data);
 }
 
+/**
+ * Creates a new group, and send a message to Broken
+ * telling a new group was created.
+ *
+ * @param {*} appStore VueJS store that holds global data
+ * @param {*} group New group data
+ */
 const createGroup = (appStore, group) => {
-    sendMessage(appStore, group, TOPICS.GROUPS);
+    const groupTopic = TOPICS.GROUPS_CONTROL.replace('#', group.uuid);
+    console.log('createGroup: groupTopic', groupTopic);
+    console.log('createGroup: groupData', group);
+    const payload = {
+        group
+    };
+    sendMessage(appStore, payload, groupTopic);
+    subscribeTopic(appStore, groupTopic);
+    subscribeTopic(appStore, group.uuid);
+}
+
+const requestToJoinGroup = (appStore, group) => {
+    const currentUser = appStore.getUser();
+    const groupTopic = TOPICS.GROUPS_CONTROL.replace('#', group.uuid);
+
+    const payload = {
+        content: PAYLOAD.JOIN_GROUP,
+        user: currentUser,
+        group,   
+    };
+
+    sendMessage(appStore, payload, groupTopic);
+}
+
+/**
+ * 
+ * @param {*} appStore VueJS store that holds global data
+ * @param {*} group Group that user intents to join
+ * @param {*} requestingUser Joining user
+ * @param {*} ack Group owner join confirmation (yes or no)
+ */
+const acknowledgeJoinGroup = (appStore, group, requestingUser, ack) => {
+    const groupTopic = TOPICS.GROUPS_CONTROL.replace('#', group.uuid);
+
+    const payload = {
+        ack,
+        content: PAYLOAD.JOIN_GROUP_ACK,
+        requestingUser,
+        group,
+    };
+
+    sendMessage(appStore, payload, groupTopic);
 }
 
 /**
@@ -298,4 +346,6 @@ export {
     acknowledgeChat,
     subscribeTopic,
     sendMessage,
+    requestToJoinGroup,
+    acknowledgeJoinGroup,
 };
